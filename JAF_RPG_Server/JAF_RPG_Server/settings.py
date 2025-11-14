@@ -13,11 +13,13 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 import os
 from dotenv import load_dotenv
 from pathlib import Path
-
+# For JWT token expiration
+from datetime import timedelta 
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+load_dotenv(os.path.join(BASE_DIR, '.env'))
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
@@ -28,7 +30,7 @@ SECRET_KEY = os.getenv('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['localhost', '44.212.152.76']
+ALLOWED_HOSTS = ['localhost', '44.212.152.76', '127.0.0.1']
 
 
 # Application definition
@@ -36,6 +38,7 @@ ALLOWED_HOSTS = ['localhost', '44.212.152.76']
 INSTALLED_APPS = [
     'corsheaders',
     'rest_framework',
+    'rest_framework.authtoken',
     'jaf_api',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -46,7 +49,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middlesare.CorsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -81,7 +84,41 @@ WSGI_APPLICATION = 'JAF_RPG_Server.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-DATABASES = os.getenv('DATABASES')
+DATABASES={
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': os.getenv('DATABASE_NAME'),
+        'USER': os.getenv('DATABASE_USER'),
+        'PASSWORD': os.getenv('DATABASE_PASSWORD'),
+        'HOST': os.getenv('DATABASE_HOST'),
+    }
+}
+
+
+# TO SET UP JWT AUTHENTICATION SUCCESSFULLY: CUSTOM USER MODE & REST FRAMEWORK SETTINGS
+# ADDED: Custom user model 
+AUTH_USER_MODEL = 'jaf_api.User'
+
+# ADDED: REST framework settings
+REST_FRAMEWORK = {
+    'DEFAULT_PERMISSION_CLASSES': (
+        'rest_framework.permissions.IsAuthenticated',
+    ),
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ],
+}
+
+# ADDED: JWT Token management (READ UP MORE TO UNDERSTAND SETTINGS HERE)
+SIMPLE_JWT = {
+    'TOKEN_OBTAIN_PAIR_SERIALIZER': 'jaf_api.serializers.CustomTokenObtainPairSerializer',
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+    'ROTATE_REFRESH_TOKENS': False,
+    'BLACKLIST_AFTER_ROTATION': True,
+    'UPDATE_LAST_LOGIN': False,
+    'USER_ID_FIELD': 'user_id',  # Tell simplejwt to use user_id instead of id
+}
 
 
 # Password validation
