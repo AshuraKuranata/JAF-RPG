@@ -1,12 +1,49 @@
 from django.db import models
+from django.contrib.auth.models import (AbstractBaseUser, BaseUserManager, PermissionsMixin)
 
-# Create your models here.
-class User(models.Model):
-    user_id = models.BigAutoField(primary_key=True)
-    username = models.CharField(max_length=100)
-    password = models.CharField(max_length=100)
+class TimeStampMixin(models.Model): # Unique Time Stamp that can be re-used
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        abstract = True
+
+class UserManager(BaseUserManager): # Custom User Manager to help create custom users instead of Django default
+    def create_user(self, username, email, password=None, **extra_fields):
+        if not email:
+            raise ValueError('Users must have an email address')
+        if not username:
+            raise ValueError('Users must have a username')
+        user = self.model(username=username, email=self.normalize_email(email), **extra_fields)
+        user.set_password(password)
+        user.save(using=self._db)
+        return user
+
+    def create_superuser(self, username, email, password=None, **extra_fields):
+        extra_fields.setdefault('is_staff', True)
+        extra_fields.setdefault('is_superuser', True)
+        return self.create_user(username, email, password, **extra_fields)
+
+class User(AbstractBaseUser, PermissionsMixin, TimeStampMixin): # Custom User Model
+    user_id = models.BigAutoField(primary_key=True)
+    username = models.CharField(max_length=100, unique=True, null=False, blank=False)
+    password = models.CharField(max_length=128)
+    email = models.EmailField(max_length=100, unique=True, null=False, blank=False)
+    is_active = models.BooleanField(default=True)
+    is_staff = models.BooleanField(default=False)
+    is_superuser = models.BooleanField(default=False)
+
+    objects = UserManager()
+
+    USERNAME_FIELD = 'username'
+    REQUIRED_FIELDS = ['email']
+
+    @property
+    def id(self):
+        return self.user_id
+
+    def __str__(self):
+        return self.username
 
 class RoleClass(models.Model):
     role_class_id = models.BigAutoField(primary_key=True)
@@ -83,7 +120,7 @@ class Location(models.Model):
 
 class Character(models.Model):
     character_id = models.BigAutoField(primary_key=True)
-    name = models.CharField(max_length=100)
+    character_name = models.CharField(max_length=100)
     level = models.IntegerField(default=1)
     max_hp = models.IntegerField(default=10)
     current_hp = models.IntegerField(default=10)
@@ -99,7 +136,6 @@ class Character(models.Model):
     wisdom = models.IntegerField(default=10)
     charisma = models.IntegerField(default=10)
     created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
     user = models.ForeignKey(User, on_delete=models.CASCADE)
 
 class Inventory(models.Model):
